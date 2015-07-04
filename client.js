@@ -26,9 +26,6 @@
 		drawing = true;
 
 	});
- 
-
-	
 	// each time drawing event from server is triggered
 	socket.on('drawing', function(data) {
 		console.log("what's in data : " + data);
