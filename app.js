@@ -2,7 +2,7 @@
 	var express = require('express');
 	var app = express();
 	// Server creates a new server 
-	// and app Obj supplied as option  
+	// and app obj supplied as an option  
 	var server = require('http').Server(app);
 	// socket.io and htpp sharing the same server
 	var io = require('socket.io')(server);

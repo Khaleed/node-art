@@ -14,8 +14,7 @@
 		gameRules = document.getElementById('rules'),
 		// Generate UUID of 5 characters
 		user = Math.random().toString(36).subtr(2, 5),
-		today = new Date,
-		emittedTime = today.getMilliseconds(),
+		time = new Date,
 		// state for drawing activity
 		drawing = false,
 		players = {},
@@ -30,9 +29,20 @@
 		// hide game rules
 		gameRules.style.display = 'none';
 	});
-	// drawing
+
+	var prevEmitTime = time.getMilliseconds();
 	document.addEventListener('mousemove', function(e) {
-		// figure out a way to reduce 
+		// figure out a way to reduce packets of info being sent
+		if (time.getMilliseconds() - prevEmitTime > 60) {
+			// emit onMouseMove event
+			socket.emit('onMouseMove', {
+				// return x y cordinates, user, and drawing state
+				'x': e.pageX,
+				'y': e.pageY,
+				'drawing': drawing,
+				'user': user
+			});
+		}
 	});
 	// not drawing
 	document.addEventListener('mouseup mouseleave', function(e) {
