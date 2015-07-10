@@ -2,10 +2,8 @@
 
 	'use strict';
 
-	// connect to socket.io 
-	var socket = io.connect('http://localhost:3000');
 	// get elements
-	var canvas = document.getElementBy('canvas'),
+	var canvas = document.getElementById('canvas'),
 		// rendering context
 		ctx,
 		// mouse pointer
@@ -18,13 +16,42 @@
 		drawing = false,
 		players = {},
 		pointers = {},
-		hist = {};
+		curent = {};
+	// connect to socket.io 
+	var socket = io.connect('http://localhost:3000');
+	// drawLine 
+	function drawLine(x1, y1, x2, y2) {
+		ctx.beginPath();
+		ctx.moveTo(x1, x2);
+		ctx.lineTo(x2, y2);
+		ctx.closePath();
+		ctx.stroke();
+	}
+	// each time drawing event from server is triggered
+	socket.on('drawing', function(data) {
+		console.log("what's in data : " + data);
+		var newCursor = pointer.innerHTML += "<span class='pointer'> <span>";
+		var moveArrow = pointers[data.user].style;
+		// does players obj have data.user (unique id) key
+		// as a direct property
+		if (players.hasOwnProperty(data.user)) {
+			// build new user's drawing pointer
+			pointers[data.user] = newCursor;
+		}
+		// move mouse pointer
+		moveArrow.left = data.x;
+		moveArrow.top = data.y;
+		// draw line
+		drawLine(players[data.user].x, players[data.user].y, data.x, data.y);
+		// save players states
+		players[data.user] = data;
+	});
 	// event handler for drawing on canvas
 	canvas.addEventListener('mousedown', function(e) {
 		e.preventDefault();
 		drawing = true;
-		hist.x = e.pageX; // X coordinate (in pixels) of mouse pointer
-		hist.y = e.pageY; // Y coordinate of mouse pointer
+		current.x = e.pageX; // X coordinate (in pixels) of mouse pointer
+		current.y = e.pageY; // Y coordinate of mouse pointer
 		// hide game rules
 		gameRules.style.display = 'none';
 	});
@@ -41,30 +68,16 @@
 				'drawing': drawing,
 				'user': user
 			});
+			prevEmitTime = Date.now();
+		}
+		// draw line for the current user's movement because it's not
+		// captured by onMouseMove event
+		if (drawing) {
+			drawLine(current.x, current.y, e.pageX, e.pageY);
 		}
 	});
-	// not drawing
-	document.addEventListener('mouseup mouseleave', function(e) {
+	// bind mouseup and mousleave events and set drawing state to false
+	document.bind('mouseup mouseleave', function(e) {
 		drawing = false;
-	});
-	// each time drawing event from server is triggered
-	socket.on('drawing', function(data) {
-		console.log("what's in data : " + data);
-		var newCursor = pointer.innerHTML += "<span class='pointer'> <span>";
-		var moveArrow = pointers[data.user].style;
-		// does players obj have data.user (unique id) key
-		// as a direct property
-		if (players.hasOwnProperty(data.user)) {
-			// build new user's drawing pointer
-			pointers[data.user] = newCursor;
-		}
-		// move mouse pointer
-		moveArrow.left = data.x;
-		moveArrow.top = data.y;
-		// draw
-		draw(players[data.user].x, players[data.user].y, data.x, data.y);
-		// save players states
-		players[data.user] = data;
-
 	});
 })();
