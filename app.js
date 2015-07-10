@@ -1,4 +1,5 @@
 (function() {
+	// get express
 	var express = require('express');
 	var app = express();
 	// Server creates a new server 
@@ -13,14 +14,14 @@
 		res.sendFile(__dirname + '/index.html');
 	});
 	// static routes
-	app.use('/assets', express.static('assets'));
+	app.use('/static', express.static('static'));
 
 	// listen to connection event for socket.io
 	io.on('connection', function(socket) {
 		console.log('socket.io established');
 		// listen to mousemove event
-		socket.on('onMouseMove', function(data) {
-			socket.broadcast.emit('drawing', data);
+		socket.on('mousemove', function(data) {
+			socket.broadcast.emit('moving', data);
 		});
 	});
 	server.listen(port, function() {
