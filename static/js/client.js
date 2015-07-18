@@ -4,7 +4,8 @@
     // connect to socket.io 
     var socket = io.connect('http://localhost:3000');
     // mouse pointer
-    var cursor = document.getElementById('cursor');
+    var cursor = document.getElementById('cursors');
+    // canvas
     var canvas = document.getElementById('canvas');
     // rules
     var gameRules = document.getElementById('rules');
@@ -15,33 +16,28 @@
     // objects
     var players = {},
         cursors = {};
-    // drawLine helper function
-    function drawLine(x1, y1, x2, y2) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.stroke();
-    }
     // each time drawing event from server is triggered
     socket.on('moving', function(data) {
-        var newCursor = pointer.innerHTML += "<div class='pointer'> <div>";
-        var moveMouse = cursors[data.user].style;
+        console.log("what is in the data: " + data);
+        var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
         // does players obj have data.user (unique id) key
         // as a direct property
+        console.log("user is " + data.user);
         if (players.hasOwnProperty(data.user)) {
-            // build new user's drawing pointer
+            // build a cursor for each user
             cursors[data.user] = newCursor;
+            console.log("cursors: " + cursors[data.user]);
         }
-        // move mouse pointer
-        moveMouse.left = data.x;
-        moveMouse.top = data.y;
-        // if the user is drawing and has an ID
+        // move mouse left and right
+        cursors[data.user].style.left = data.x;
+        cursors[data.user].style.left = data.y;
+        // if the user is drawing and user has unique ID
         if (data.drawing && players[data.user]) {
             // draw line
+            // players[data.user] hold previous user position
             drawLine(players[data.user].x, players[data.user].y, data.x, data.y);
         }
-        // save players states
+        // save current player state
         players[data.user] = data;
     });
     var current = {};
@@ -83,31 +79,32 @@
             drawLine(current.x, current.y, e.pageX, e.pageY);
         }
     });
-})();
-
-/* 
-
-document.body.onload = function() {
-    var canvas = document.getElementById('canvas');
-    if(canvas.getContext) {
-        var ctx = canvas.getContext('2d');
-        // Filled Triangle
+    // fade function source: http://bit.ly/1g7lWWr
+    function fade(element) {
+        var opacity = 1,
+            timer;
+        timer = setInterval(function() {
+            if (opacity <= 0.1) {
+                // cancel repeated action
+                clearInterval(timer);
+                element.style.display = 'none';
+            }
+            element.style.opacity = opacity;
+            element.style.filter = "alpha(opacity=" + opacity * 100 + ")";
+            opacity -= opacity * 0.1;
+        }, 50);
+    }
+    function handleClick
+    // drawLine helper function
+    function drawLine(x1, y1, x2, y2) {
+        // set canvas to fit window
+        ctx.canvas.width = window.innerWidth;
+        ctx.canvas.height = window.innerHeight;
+        // drawing cordinates
         ctx.beginPath();
-        ctx.moveTo(25, 25);
-        ctx.lineTo(105, 25);
-        ctx.lineTo(25, 105);
-        ctx.fill();
-        // Stroked Triangle
-        ctx.beginPath();
-        ctx.moveTo(125, 125);
-        ctx.lineTo(125, 45);
-        ctx.lineTo(45, 125);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.closePath();
         ctx.stroke();
-    } else {
-        console.error('canvas not supported by browser');
     }
-};
-
-
-*/
+})();

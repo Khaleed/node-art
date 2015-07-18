@@ -9,7 +9,6 @@
 	var io = require('socket.io')(server);
 	var path = require('path');
 	var port = process.env.port || 3000;
-
 	// routes
 	app.get('/', function(req, res) {
 		res.sendFile(__dirname + '/index.html');
