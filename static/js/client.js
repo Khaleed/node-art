@@ -1,110 +1,115 @@
 (function() {
-
-    'use strict';
-    // connect to socket.io 
+    // connect to socket.io
     var socket = io.connect('http://localhost:3000');
-    // mouse pointer
-    var cursor = document.getElementById('cursors');
-    // canvas
-    var canvas = document.getElementById('canvas');
-    // rules
-    var gameRules = document.getElementById('rules');
-    // Generate UUID of 5 characters
-    var user = Math.random().toString(36).substr(2, 5);
-    // state for drawing activity
+    // get elements
+    var canvas = document.getElementById('canvas'),
+        ctx = canvas.getContext('2d'),
+        rules = document.getElementById('rules');
+    // generate UIID
+    var id = Math.random().toString(36).substr(2, 5);
+    // drawing state
     var drawing = false;
-    // objects
-    var players = {},
-        cursors = {};
+    // main objects
+    var clients = {};
+    var cursors = {};
+    // handle socket.io events
     // each time drawing event from server is triggered
     socket.on('moving', function(data) {
         console.log("what is in the data: " + data);
         var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
-        // does players obj have data.user (unique id) key
+        // does clients obj have data.id (unique id) key
         // as a direct property
-        console.log("user is " + data.user);
-        if (players.hasOwnProperty(data.user)) {
-            // build a cursor for each user
-            cursors[data.user] = newCursor;
-            console.log("cursors: " + cursors[data.user]);
+        console.log("id is " + data.id);
+        if (clients.hasOwnProperty(data.id)) {
+            // build a cursor for each id
+            cursors[data.id] = newCursor;
+            console.log("cursors: " + cursors[data.id]);
         }
         // move mouse left and right
-        cursors[data.user].style.left = data.x;
-        cursors[data.user].style.left = data.y;
-        // if the user is drawing and user has unique ID
-        if (data.drawing && players[data.user]) {
+        cursors[data.id].style.left = data.x;
+        cursors[data.id].style.left = data.y;
+        // if the id is drawing and id has unique ID
+        if (data.drawing && clients[data.id]) {
             // draw line
-            // players[data.user] hold previous user position
-            drawLine(players[data.user].x, players[data.user].y, data.x, data.y);
+            // clients[data.id] hold previous id position
+            drawLine(clients[data.id].x, clients[data.id].y, data.x, data.y);
         }
         // save current player state
-        players[data.user] = data;
+        clients[data.id] = data;
     });
     var current = {};
-    // event handler for drawing on canvas
-    if (canvas.getContext) {
-        canvas.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            drawing = true;
-            current.x = e.pageX; // X coordinate (in pixels) of mouse pointer
-            current.y = e.pageY; // Y coordinate of mouse pointer
-            // hide game rules
-            gameRules.style.display = 'none';
-        });
-    } else {
-        console.error('canvas not supported on your browser');
-    }
-    // bind mouseup and mousleave events and set drawing state to false
-    document.documentElement.bind('mouseup mouseleave', function(e) {
+    // canvas mousedown handler
+    canvas.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        drawing = true;
+        current.x = e.pageX;
+        current.y = e.pageY;
+        // hide game rules
+        rules.style.display = 'none';
+    });
+    // bind mouseup and mouseleave events and set drawing state to false
+    document.addEventListener('mouseup mouseleave', function() {
         drawing = false;
     });
-    // mousemove event
-    var prevEmitTime = Date.now();
-    document.documentElement.addEventListener('mousemove', function(e) {
-        // figure out a way to reduce packets of info being sent
-        if (Date.now() - prevEmitTime > 30) {
-            // emit onMouseMove event
+    // emit mousemove
+    var lastEmit = Date.now();
+    // mousemove event handler
+    document.addEventListener('mousemove', function(e) {
+        if (Date.now() - lastEmit > 30) {
             socket.emit('mousemove', {
-                // return x y cordinates, user, and drawing state
                 'x': e.pageX,
                 'y': e.pageY,
                 'drawing': drawing,
-                'user': user
+                'id': id
             });
-            prevEmitTime = Date.now();
+            lastEmit = Date.now();
         }
-        // draw line for the current user's movement because it's not
-        // captured by onMouseMove event
+        // Drawline based on current user movement as not 
+        // received from socket.on('moving') 
         if (drawing) {
             drawLine(current.x, current.y, e.pageX, e.pageY);
+            current.x = e.pageX;
+            current.y = e.pageY;
         }
     });
-    // fade function source: http://bit.ly/1g7lWWr
-    function fade(element) {
-        var opacity = 1,
-            timer;
-        timer = setInterval(function() {
-            if (opacity <= 0.1) {
-                // cancel repeated action
-                clearInterval(timer);
-                element.style.display = 'none';
+    // remove inactive users after 10 seconds of logging on
+    setInterval(function() {
+        // loop through clients 
+        for (key in clients) {
+            if (Date.now() - clients[key].updated > 10000) {
+                delete cursors[key];
+                delete clients[key];
             }
-            element.style.opacity = opacity;
-            element.style.filter = "alpha(opacity=" + opacity * 100 + ")";
-            opacity -= opacity * 0.1;
-        }, 50);
-    }
-    function handleClick
-    // drawLine helper function
+        }
+    }, 10000);
+    // drawLine
     function drawLine(x1, y1, x2, y2) {
-        // set canvas to fit window
-        ctx.canvas.width = window.innerWidth;
-        ctx.canvas.height = window.innerHeight;
-        // drawing cordinates
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.closePath();
         ctx.stroke();
+    }
+    // draw grid
+    function renderGrid(pix, color) {
+        ctx.save();
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = color;
+        // horizontal lines
+        for (var i = 0; i <= canvas.height; i += pix) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        // vertical lines
+        for (var j = 0; j <= canvas.width; j += pix) {
+            ctx.beginPath();
+            ctx.moveTo(j, 0);
+            ctx.lineTo(j, canvas.height);
+            ctx.closePath();
+            ctx.stroke();
+        }
     }
 })();
