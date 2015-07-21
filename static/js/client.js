@@ -48,7 +48,8 @@
         rules.style.display = 'none';
     });
     // bind mouseup and mouseleave events and set drawing state to false
-    document.addEventListener('mouseup mouseleave', function() {
+    // timing and order of mouse events cannot be predicted in advance
+    addMultiListeners(document, 'mouseup mouseleave', function() {
         drawing = false;
     });
     // emit mousemove
@@ -110,6 +111,17 @@
             ctx.lineTo(j, canvas.height);
             ctx.closePath();
             ctx.stroke();
+        }
+    }
+    // handle multiple events using elem, str, and callback
+    function addMultiListeners(elem, str, cb) {
+        // split events into substrings in an array 
+        var events = str.split(' '),
+            len = events.length,
+            i;
+        // handler for multi events
+        for (i = 0; i < len; i += 1) {
+            elem.addEventListener(events[i], cb);
         }
     }
 })();
