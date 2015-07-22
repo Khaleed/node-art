@@ -8,6 +8,7 @@
 	// socket.io and htpp sharing the same server
 	var io = require('socket.io')(server);
 	var path = require('path');
+	var colors = require('colors');
 	var port = process.env.port || 3000;
 	// routes
 	app.get('/', function(req, res) {
@@ -22,6 +23,10 @@
 		// listen to mousemove event
 		socket.on('mousemove', function(data) {
 			socket.broadcast.emit('moving', data);
+			console.log('inside data: '.green + data);
+		});
+		socket.on('disconnection', function() {
+			console.log('user logged out');
 		});
 	});
 	// app listen same as http.Server.listen

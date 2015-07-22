@@ -3,6 +3,7 @@
     var socket = io.connect('http://localhost:3000');
     // get elements
     var canvas = document.getElementById('canvas'),
+        cursor = document.getElementById('cursors'),
         ctx = canvas.getContext('2d'),
         rules = document.getElementById('rules');
     // generate UIID
@@ -12,9 +13,56 @@
     // main objects
     var clients = {};
     var cursors = {};
+    // helper functions
+    function drawLine (x1, y1, x2, y2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.closePath();
+        ctx.stroke();
+    }
+    // draw grid
+    function renderGrid (pxl, color) {
+        // save entire state of canvas
+        ctx.save();
+        // set thickness of lines
+        ctx.lineWidth = 0.5;
+        // species color or style for lines 
+        ctx.strokeStyle = color;
+        // horizontal lines
+        for (var i = 0; i <= canvas.height; i += pxl) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        // vertical lines
+        for (var j = 0; j <= canvas.width; j += pxl) {
+            ctx.beginPath();
+            ctx.moveTo(j, 0);
+            ctx.lineTo(j, canvas.height);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        // restored the most recent saved canvas
+        // to default state
+        ctx.restore();
+    }
+    // handle multiple events using elem, str, and callback
+    function addMultiListeners (elem, str, cb) {
+        // split events into substrings in an array 
+        var events = str.split(' '),
+            len = events.length,
+            i;
+        // handler for multi events
+        for (i = 0; i < len; i += 1) {
+            elem.addEventListener(events[i], cb);
+        }
+    }
     // handle socket.io events
     // each time drawing event from server is triggered
-    socket.on('moving', function(data) {
+    socket.on('moving', function (data) {
         console.log("what is in the data: " + data);
         var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
         // does clients obj have data.id (unique id) key
@@ -39,23 +87,24 @@
     });
     var current = {};
     // canvas mousedown handler
-    canvas.addEventListener('mousedown', function(e) {
+    canvas.addEventListener('mousedown', function (e) {
         e.preventDefault();
         drawing = true;
         current.x = e.pageX;
         current.y = e.pageY;
         // hide game rules
         rules.style.display = 'none';
+        renderGrid(5, '#C0C0C0');
     });
     // bind mouseup and mouseleave events and set drawing state to false
     // timing and order of mouse events cannot be predicted in advance
-    addMultiListeners(document, 'mouseup mouseleave', function() {
+    addMultiListeners(document, 'mouseup mouseleave', function () {
         drawing = false;
     });
     // emit mousemove
     var lastEmit = Date.now();
     // mousemove event handler
-    document.addEventListener('mousemove', function(e) {
+    document.addEventListener('mousemove', function (e) {
         if (Date.now() - lastEmit > 30) {
             socket.emit('mousemove', {
                 'x': e.pageX,
@@ -83,45 +132,4 @@
             }
         }
     }, 10000);
-    // drawLine
-    function drawLine(x1, y1, x2, y2) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.stroke();
-    }
-    // draw grid
-    function renderGrid(pix, color) {
-        ctx.save();
-        ctx.lineWidth = 0.5;
-        ctx.strokeStyle = color;
-        // horizontal lines
-        for (var i = 0; i <= canvas.height; i += pix) {
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(canvas.width, i);
-            ctx.closePath();
-            ctx.stroke();
-        }
-        // vertical lines
-        for (var j = 0; j <= canvas.width; j += pix) {
-            ctx.beginPath();
-            ctx.moveTo(j, 0);
-            ctx.lineTo(j, canvas.height);
-            ctx.closePath();
-            ctx.stroke();
-        }
-    }
-    // handle multiple events using elem, str, and callback
-    function addMultiListeners(elem, str, cb) {
-        // split events into substrings in an array 
-        var events = str.split(' '),
-            len = events.length,
-            i;
-        // handler for multi events
-        for (i = 0; i < len; i += 1) {
-            elem.addEventListener(events[i], cb);
-        }
-    }
 })();
