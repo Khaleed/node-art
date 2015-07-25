@@ -4,8 +4,14 @@
     // get elements
     var canvas = document.getElementById('canvas'),
         cursor = document.getElementById('cursors'),
-        ctx = canvas.getContext('2d'),
+        ctx,
         rules = document.getElementById('rules');
+    // check if canvas is supported
+    if (canvas.getContext) {
+        ctx = canvas.getContext('2d');
+    } else {
+        alert('Canvas not supported by browser');
+    }
     // generate UIID
     var id = Math.random().toString(36).substr(2, 5);
     // drawing state
@@ -13,21 +19,21 @@
     // main objects
     var clients = {};
     var cursors = {};
-    // helper functions
-    function drawLine (x1, y1, x2, y2) {
+    // helper functions to drawLine
+    function drawLine(x1, y1, x2, y2) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.closePath();
         ctx.stroke();
     }
-    // draw grid
-    function renderGrid (pxl, color) {
-        // save entire state of canvas
+    // to draw grid
+    function renderGrid(pxl, color) {
+        // save current state of canvas
         ctx.save();
         // set thickness of lines
         ctx.lineWidth = 0.5;
-        // species color or style for lines 
+        // specify color or style for lines 
         ctx.strokeStyle = color;
         // horizontal lines
         for (var i = 0; i <= canvas.height; i += pxl) {
@@ -45,17 +51,16 @@
             ctx.closePath();
             ctx.stroke();
         }
-        // restored the most recent saved canvas
-        // to default state
+        // restore most recent saved canvas to default state
         ctx.restore();
     }
-    // handle multiple events using elem, str, and callback
-    function addMultiListeners (elem, str, cb) {
+    // to handle multiple events 
+    function addMultiListeners(elem, str, cb) {
         // split events into substrings in an array 
         var events = str.split(' '),
             len = events.length,
             i;
-        // handler for multi events
+        // loop & handle any multi events
         for (i = 0; i < len; i += 1) {
             elem.addEventListener(events[i], cb);
         }
@@ -63,19 +68,20 @@
     // handle socket.io events
     // each time drawing event from server is triggered
     socket.on('moving', function (data) {
-        console.log("what is in the data: " + data);
-        var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
         // does clients obj have data.id (unique id) key
-        // as a direct property
+        // as a direct property?
+        var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
         console.log("id is " + data.id);
         if (clients.hasOwnProperty(data.id)) {
-            // build a cursor for each id
+            // build a cursor for each user with unique id
             cursors[data.id] = newCursor;
             console.log("cursors: " + cursors[data.id]);
         }
         // move mouse left and right
         cursors[data.id].style.left = data.x;
-        cursors[data.id].style.left = data.y;
+        console.log("cursors move left: " + cursors[data.id]);
+        cursors[data.id].style.right = data.y;
+        console.log("cursors move left: " + cursors[data.id]);
         // if the id is drawing and id has unique ID
         if (data.drawing && clients[data.id]) {
             // draw line
@@ -98,7 +104,7 @@
     });
     // bind mouseup and mouseleave events and set drawing state to false
     // timing and order of mouse events cannot be predicted in advance
-    addMultiListeners(document, 'mouseup mouseleave', function () {
+    addMultiListeners(document, 'mouseup mouseleave', function() {
         drawing = false;
     });
     // emit mousemove
@@ -125,7 +131,7 @@
     // remove inactive users after 10 seconds of logging on
     setInterval(function() {
         // loop through clients 
-        for (key in clients) {
+        for (var key in clients) {
             if (Date.now() - clients[key].updated > 10000) {
                 delete cursors[key];
                 delete clients[key];

@@ -23,7 +23,10 @@
 		// listen to mousemove event
 		socket.on('mousemove', function(data) {
 			socket.broadcast.emit('moving', data);
-			console.log('inside data: '.green + data);
+			console.log('inside data.x : ' .green + data.x);
+			console.log('inside data.y: ' .red + data.y);
+			console.log('inside data.drawing ' .yellow + data.drawing);
+			console.log('inside data.id ' .blue + data.id);
 		});
 		socket.on('disconnection', function() {
 			console.log('user logged out');
