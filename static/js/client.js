@@ -5,6 +5,7 @@
     var canvas = document.getElementById('canvas'),
         cursor = document.getElementById('cursors'),
         ctx,
+        room = window.location.pathname.split('/').pop(),
         rules = document.getElementById('rules');
     // check if canvas is supported
     if (canvas.getContext) {
@@ -19,6 +20,10 @@
     // main objects
     var clients = {};
     var cursors = {};
+    // once connected emit room event
+    socket.on('connect', function(room) {
+        socket.emit('room', room);
+    });
     // helper functions to drawLine
     function drawLine(x1, y1, x2, y2) {
         ctx.beginPath();
@@ -65,13 +70,13 @@
             elem.addEventListener(events[i], cb);
         }
     }
-    // handle socket.io events
-    // each time drawing event from server is triggered
-    socket.on('moving', function (data) {
-        // does clients obj have data.id (unique id) key
-        // as a direct property?
+    // node relays back to us the mouse coordinates, unique id of user
+    // and drawing states emitted by other sockets
+    socket.on('moving', function(data) {
         var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
         console.log("id is " + data.id);
+        // does clients obj have data.id (unique id) key
+        // as a direct property?
         if (clients.hasOwnProperty(data.id)) {
             // build a cursor for each user with unique id
             cursors[data.id] = newCursor;
@@ -93,7 +98,7 @@
     });
     var current = {};
     // canvas mousedown handler
-    canvas.addEventListener('mousedown', function (e) {
+    canvas.addEventListener('mousedown', function(e) {
         e.preventDefault();
         drawing = true;
         current.x = e.pageX;
@@ -110,8 +115,10 @@
     // emit mousemove
     var lastEmit = Date.now();
     // mousemove event handler
-    document.addEventListener('mousemove', function (e) {
+    document.addEventListener('mousemove', function(e) {
         if (Date.now() - lastEmit > 30) {
+            // event emitted by other sockets that contains
+            // mouse coordinates, UUID, and drawing state
             socket.emit('mousemove', {
                 'x': e.pageX,
                 'y': e.pageY,
