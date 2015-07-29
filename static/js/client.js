@@ -1,7 +1,7 @@
 (function() {
     // connect to socket.io
     var socket = io.connect('http://localhost:3000');
-    // get elements
+    // get main elements
     var canvas = document.getElementById('canvas'),
         cursor = document.getElementById('cursors'),
         ctx,
@@ -17,11 +17,12 @@
     var id = Math.random().toString(36).substr(2, 5);
     // drawing state
     var drawing = false;
-    // main objects
+    // main objects to hold each client and each cursor
     var clients = {};
     var cursors = {};
     // once connected emit room event
-    socket.on('connect', function(room) {
+    // to ensure clients start from same state
+    socket.on('connect', function () {
         socket.emit('room', room);
     });
     // helper functions to drawLine
@@ -70,6 +71,29 @@
             elem.addEventListener(events[i], cb);
         }
     }
+    // emit mousemove
+    var lastEmit = Date.now();
+    // mousemove event handler
+    document.addEventListener('mousemove', function(e) {
+        if (Date.now() - lastEmit > 30) {
+            // event emitted by other sockets that contains
+            // mouse coordinates, UUID, and drawing state
+            socket.emit('moving', {
+                'x': e.pageX,
+                'y': e.pageY,
+                'drawing': drawing,
+                'id': id
+            });
+            lastEmit = Date.now();
+        }
+        // Drawline based on current user movement as not 
+        // received from socket.on('moving') 
+        if (drawing) {
+            drawLine(current.x, current.y, e.pageX, e.pageY);
+            current.x = e.pageX;
+            current.y = e.pageY;
+        }
+    });
     // node relays back to us the mouse coordinates, unique id of user
     // and drawing states emitted by other sockets
     socket.on('moving', function(data) {
@@ -111,29 +135,6 @@
     // timing and order of mouse events cannot be predicted in advance
     addMultiListeners(document, 'mouseup mouseleave', function() {
         drawing = false;
-    });
-    // emit mousemove
-    var lastEmit = Date.now();
-    // mousemove event handler
-    document.addEventListener('mousemove', function(e) {
-        if (Date.now() - lastEmit > 30) {
-            // event emitted by other sockets that contains
-            // mouse coordinates, UUID, and drawing state
-            socket.emit('mousemove', {
-                'x': e.pageX,
-                'y': e.pageY,
-                'drawing': drawing,
-                'id': id
-            });
-            lastEmit = Date.now();
-        }
-        // Drawline based on current user movement as not 
-        // received from socket.on('moving') 
-        if (drawing) {
-            drawLine(current.x, current.y, e.pageX, e.pageY);
-            current.x = e.pageX;
-            current.y = e.pageY;
-        }
     });
     // remove inactive users after 10 seconds of logging on
     setInterval(function() {
