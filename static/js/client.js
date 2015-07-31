@@ -22,8 +22,73 @@
     var cursors = {};
     // once connected emit room event
     // to ensure clients start from same state
-    socket.on('connect', function () {
+    socket.on('connect', function() {
         socket.emit('room', room);
+    });
+    // emit mousemove
+    var lastEmit = Date.now();
+    // mousemove event handler
+    document.addEventListener('mousemove', function(e) {
+        if (Date.now() - lastEmit > 30) {
+            // event emitted by other sockets that contains
+            // mouse coordinates, UUID, and drawing state
+            socket.emit('moving', {
+                'x': e.pageX,
+                'y': e.pageY,
+                'drawing': drawing,
+                'id': id
+            });
+            lastEmit = Date.now();
+        }
+        // Drawline based on current user movement as not 
+        // received from socket.on('moving') 
+        if (drawing) {
+            drawLine(current.x, current.y, e.pageX, e.pageY);
+            current.x = e.pageX;
+            current.y = e.pageY;
+        }
+    });
+    // node relays back to us the mouse coordinates, unique id of user
+    // and drawing states emitted by other sockets
+    socket.on('moving', function(data) {
+        var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
+        console.log("id is " + data.id);
+        // does clients obj have data.id (unique id) key
+        // as a direct property?
+        if (!clients.hasOwnProperty(data.id)) {
+            // build a cursor for each user with unique id
+            cursors[data.id] = newCursor;
+            console.log("cursors: " + cursors[data.id]);
+        }
+        // move mouse left and right
+        cursors[data.id].style.left = data.x;
+        console.log("cursors move left: " + cursors[data.id]);
+        cursors[data.id].style.right = data.y;
+        console.log("cursors move left: " + cursors[data.id]);
+        // if the id is drawing and id has unique ID
+        if (data.drawing && clients[data.id]) {
+            // draw line
+            // clients[data.id] hold previous id position
+            drawLine(clients[data.id].x, clients[data.id].y, data.x, data.y);
+        }
+        // save current player state
+        clients[data.id] = data;
+    });
+    var current = {};
+    // canvas mousedown handler
+    canvas.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        drawing = true;
+        current.x = e.pageX;
+        current.y = e.pageY;
+        // hide game rules
+        rules.style.display = 'none';
+        renderGrid(5, '#C0C0C0');
+    });
+    // bind mouseup and mouseleave events and set drawing state to false
+    // timing and order of mouse events cannot be predicted in advance
+    addMultiListeners(document, 'mouseup mouseleave', function() {
+        drawing = false;
     });
     // helper functions to drawLine
     function drawLine(x1, y1, x2, y2) {
@@ -71,71 +136,6 @@
             elem.addEventListener(events[i], cb);
         }
     }
-    // emit mousemove
-    var lastEmit = Date.now();
-    // mousemove event handler
-    document.addEventListener('mousemove', function(e) {
-        if (Date.now() - lastEmit > 30) {
-            // event emitted by other sockets that contains
-            // mouse coordinates, UUID, and drawing state
-            socket.emit('moving', {
-                'x': e.pageX,
-                'y': e.pageY,
-                'drawing': drawing,
-                'id': id
-            });
-            lastEmit = Date.now();
-        }
-        // Drawline based on current user movement as not 
-        // received from socket.on('moving') 
-        if (drawing) {
-            drawLine(current.x, current.y, e.pageX, e.pageY);
-            current.x = e.pageX;
-            current.y = e.pageY;
-        }
-    });
-    // node relays back to us the mouse coordinates, unique id of user
-    // and drawing states emitted by other sockets
-    socket.on('moving', function(data) {
-        var newCursor = cursor.innerHTML += "<div class='cursor'> <div>";
-        console.log("id is " + data.id);
-        // does clients obj have data.id (unique id) key
-        // as a direct property?
-        if (clients.hasOwnProperty(data.id)) {
-            // build a cursor for each user with unique id
-            cursors[data.id] = newCursor;
-            console.log("cursors: " + cursors[data.id]);
-        }
-        // move mouse left and right
-        cursors[data.id].style.left = data.x;
-        console.log("cursors move left: " + cursors[data.id]);
-        cursors[data.id].style.right = data.y;
-        console.log("cursors move left: " + cursors[data.id]);
-        // if the id is drawing and id has unique ID
-        if (data.drawing && clients[data.id]) {
-            // draw line
-            // clients[data.id] hold previous id position
-            drawLine(clients[data.id].x, clients[data.id].y, data.x, data.y);
-        }
-        // save current player state
-        clients[data.id] = data;
-    });
-    var current = {};
-    // canvas mousedown handler
-    canvas.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        drawing = true;
-        current.x = e.pageX;
-        current.y = e.pageY;
-        // hide game rules
-        rules.style.display = 'none';
-        renderGrid(5, '#C0C0C0');
-    });
-    // bind mouseup and mouseleave events and set drawing state to false
-    // timing and order of mouse events cannot be predicted in advance
-    addMultiListeners(document, 'mouseup mouseleave', function() {
-        drawing = false;
-    });
     // remove inactive users after 10 seconds of logging on
     setInterval(function() {
         // loop through clients 
