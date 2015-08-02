@@ -5,21 +5,21 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title> Node Drawing App</title>
-    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="static/css/style.css" />
 </head>
 
 <body>
     <div id="cursors">
-        <!-- make new cursors here -->
+        <!-- make new mouse arrows here -->
     </div>
-<hgroup id="rules">
-        <h1>Click Below to Start Drawing </h1>
-        <h2> See What Others Draw </h2>
-        <h3> Reload Page to Start Over </h3>
-</hgroup>
     <!-- default canvas width is 300px and height is 150px -->
     <canvas id="canvas" width="1800" height="900">
     </canvas>
+    <hgroup id="rules">
+        <h1>Click Anywhere to Start Drawing </h1>
+        <h2> See what Others Draw </h2>
+        <h3> Reload Page to Re-Start</h3>
+    </hgroup>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/static/js/client.js"></script>
 </body>

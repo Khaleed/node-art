@@ -1,4 +1,5 @@
-// node is wrapped around with a function with arguments
+// node is wrapped around with a function with arguments:
+// require, exports, module, __filename, __dirname
 // get express
 var express = require('express');
 // initialise express app
@@ -9,10 +10,10 @@ var server = require('http').Server(app);
 // socket.io and  sharing the same http server as express
 // to listen for requests
 var io = require('socket.io')(server);
-var path = require('path');
 var colors = require('colors');
-var randomString = require('randomString');
+var randomString = require('randomstring');
 var port = process.env.port || 3000;
+var roomName;
 // routes
 // once you get to homepage/root re-direct
 app.get('/', function(req, res) {
@@ -33,16 +34,22 @@ app.use('/static', express.static('static'));
 // listen to connection event for socket.io
 io.on('connection', function(socket) {
 	console.log('socket.io established');
-	// listen to mousemove event
+	// listen for room event
+	socket.on('room', function(room) {
+		// add socket to room
+		socket.join(room);
+		// assign roomName
+		roomName = room;
+		console.log('connected to room '.gray + roomName);
+	});
+	// listen to mousemove event from client.js
 	socket.on('mousemove', function(data) {
-		socket.emit('moving', data);
-		console.log('inside data.x : '.green + data.x);
-		console.log('inside data.y: '.red + data.y);
-		console.log('inside data.drawing '.yellow + data.drawing);
-		console.log('inside data.id '.blue + data.id);
+		io.to(roomName).emit('moving', data);
 	});
 	socket.on('disconnection', function() {
 		console.log('user logged out');
+		// upon disconnection leave room
+		socket.leave(roomName);
 	});
 });
 // app listen same as http.Server.listen
