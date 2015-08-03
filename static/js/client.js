@@ -19,7 +19,7 @@
     var drawing = false;
     // main objects to hold each client and each cursors
     var clients = {};
-    var cursors = {};
+    var mousePointers = {};
     var current = {};
     var lastEmit = Date.now();
     // once connected emit room event
@@ -61,20 +61,22 @@
     // node relays back to us the mouse coordinates, unique id of user
     // and drawing states emitted by other sockets
     socket.on('moving', function(data) {
-        var newCursor = cursors.innerHTML += "<div class='cursor'> <div>";
+        var newCursor = document.createElement('div');
+        newCursor.className = 'cursor';
+        cursors.appendChild(newCursor);
         console.log("id is " + data.id);
         // does clients obj have data.id (unique id) key
         // as a direct property?
         if (!clients.hasOwnProperty(data.id)) {
-            // build a cursors for each user with unique id
-            cursors[data.id] = newCursor;
-            console.log("cursors: " + cursors[data.id]);
+            // build a mousePointers for each user with unique id
+            mousePointers[data.id] = newCursor;
+            console.log("cursors: " + mousePointers[data.id]);
         }
         // move mouse left and right
-        cursors[data.id].style.left = data.x;
-        console.log("cursors move left: " + cursors[data.id]);
-        cursors[data.id].style.right = data.y;
-        console.log("cursors move left: " + cursors[data.id]);
+        mousePointers[data.id].style.left = data.x;
+        console.log("mousePointers move left: " + mousePointers[data.id]);
+        mousePointers[data.id].style.right = data.y;
+        console.log("mousePointers move left: " + mousePointers[data.id]);
         // if the id is drawing and id has unique ID
         if (data.drawing && clients[data.id]) {
             // draw line
