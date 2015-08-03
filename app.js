@@ -38,13 +38,16 @@ io.on('connection', function(socket) {
 	socket.on('room', function(room) {
 		// add socket to room
 		socket.join(room);
-		// assign roomName
 		roomName = room;
 		console.log('connected to room '.gray + roomName);
 	});
 	// listen to mousemove event from client.js
-	socket.on('mousemove', function(data) {
+	socket.on('moving', function(data) {
 		io.to(roomName).emit('moving', data);
+		console.log('inside data.x : '.green + data.x);
+		console.log('inside data.y: '.red + data.y);
+		console.log('inside data.drawing '.yellow + data.drawing);
+		console.log('inside data.id '.blue + data.id);
 	});
 	socket.on('disconnection', function() {
 		console.log('user logged out');
