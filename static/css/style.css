@@ -1,5 +1,5 @@
 /* reset padding border and margin properties of all 
-elements to avoid conflict with default stylesheet */
+elements to avoid conflict with browser's default stylesheet */
 
 body div canvas h1 h2 {
     padding: 0;

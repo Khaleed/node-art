@@ -1,36 +1,51 @@
 (function() {
     // connect to socket.io
-    var socket = io.connect('http://localhost:3000');
-    // get main elements
-    var canvas = document.getElementById('canvas'),
+    var socket = io.connect('http://localhost:3000'),
+        // get main elements
+        canvas = document.getElementById('canvas'),
         cursors = document.getElementById('cursors'),
         ctx,
         room = window.location.pathname.split('/').pop(),
-        rules = document.getElementById('rules');
-    // check if canvas is supported
-    if (canvas.getContext) {
+        rules = document.getElementById('rules'),
+        // generate UIID
+        id = Math.random().toString(36).substr(2, 5),
+        // drawing state
+        drawing = false,
+        // main objects to hold each client and each cursors
+        clients = {},
+        mousePointers = {},
+        current = {},
+        // lastEmit in millisecs
+        lastEmit = Date.now();
+    // check if canvas is supported by user's browser
+    if(canvas.getContext) {
         ctx = canvas.getContext('2d');
     } else {
-        alert('Canvas not supported by browser');
+        alert('Canvas not supported by your browser');
     }
-    // generate UIID
-    var id = Math.random().toString(36).substr(2, 5);
-    // drawing state
-    var drawing = false;
-    // main objects to hold each client and each cursors
-    var clients = {};
-    var mousePointers = {};
-    var current = {};
-    var lastEmit = Date.now();
     // once connected emit room event
     // to ensure clients start from same state
     socket.on('connect', function() {
         socket.emit('room', room);
     });
-    // mousemove event handler
+    // canvas mousedown handler
+    canvas.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        drawing = true;
+        // current player's vertical coordinate relative to whole doc
+        current.x = e.pageX;
+        // current player's horizontal coordinate relative to whole doc
+        current.y = e.pageY;
+        // hide game rules
+        rules.style.display = 'none';
+        // draw grid lines
+        renderGrid(5, '#C0C0C0');
+    });
+    // mousemove event handler on document
     document.addEventListener('mousemove', function(e) {
+        // send packets every 30 millisecs
         if (Date.now() - lastEmit > 30) {
-            // event emitted by other sockets that contains
+            // event emitted by other sockets that contain
             // mouse coordinates, UUID, and drawing state
             socket.emit('moving', {
                 'x': e.pageX,
@@ -38,6 +53,7 @@
                 'drawing': drawing,
                 'id': id
             });
+            // re-initialise
             lastEmit = Date.now();
         }
         // Drawline based on current user movement as not 
@@ -48,23 +64,15 @@
             current.y = e.pageY;
         }
     });
-    // canvas mousedown handler
-    canvas.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        drawing = true;
-        current.x = e.pageX;
-        current.y = e.pageY;
-        // hide game rules
-        rules.style.display = 'none';
-        renderGrid(5, '#C0C0C0');
-    });
     // node relays back to us the mouse coordinates, unique id of user
     // and drawing states emitted by other sockets
     socket.on('moving', function(data) {
+        // create DOM obj
         var newCursor = document.createElement('div');
+        // add cursor class
         newCursor.className = 'cursor';
+        // append newCurso to cursors div
         cursors.appendChild(newCursor);
-        console.log("id is " + data.id);
         // does clients obj have data.id (unique id) key
         // as a direct property?
         if (!clients.hasOwnProperty(data.id)) {
@@ -74,9 +82,7 @@
         }
         // move mouse left and right
         mousePointers[data.id].style.left = data.x;
-        console.log("mousePointers move left: " + mousePointers[data.id]);
         mousePointers[data.id].style.right = data.y;
-        console.log("mousePointers move left: " + mousePointers[data.id]);
         // if the id is drawing and id has unique ID
         if (data.drawing && clients[data.id]) {
             // draw line
@@ -85,13 +91,14 @@
         }
         // save current player state
         clients[data.id] = data;
+        clients[data.id].updated = Date.now();
     });
     // bind mouseup and mouseleave events and set drawing state to false
     // timing and order of mouse events cannot be predicted in advance
     addMultiListeners(document, 'mouseup mouseleave', function() {
         drawing = false;
     });
-    // helper functions to drawLine
+    // helper functions to drawLine on canvas
     function drawLine(x1, y1, x2, y2) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
