@@ -13,7 +13,6 @@ var io = require('socket.io')(server);
 var colors = require('colors');
 var randomString = require('randomstring');
 var port = process.env.port || 3000;
-var roomName;
 // routes
 // once you get to homepage/root re-direct
 app.get('/', function(req, res) {
@@ -33,13 +32,27 @@ app.get('/draw/:id', function(req, res) {
 app.use('/static', express.static('static'));
 // listen to connection event for socket.io
 io.on('connection', function(socket) {
+	// establish socket.io connection
 	console.log('socket.io established');
+	// get elements
+	var roomName;
+	var gameRoom;
+	var clients;
+	var nameSpace = '/';
 	// listen for room event
 	socket.on('room', function(room) {
 		// add socket to room
 		socket.join(room);
 		roomName = room;
+		gameRoom = io.nsps[nameSpace].adapter.rooms[roomName];
 		console.log('connected to room '.gray + roomName);
+		console.log('what is in gameRoom: '.gray + gameRoom);
+		clients = Object.keys(gameRoom).length;
+		console.log('how many people in game room: '.gray + Object.keys(gameRoom));
+		console.log('how many clients + '.gray + clients);
+		if(clients === 1) {
+			io.to(socket.id).emit('user', 1);
+		}
 	});
 	// listen to mousemove event from client.js
 	socket.on('moving', function(data) {

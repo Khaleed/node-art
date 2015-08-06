@@ -6,7 +6,8 @@
         cursors = document.getElementById('cursors'),
         ctx,
         room = window.location.pathname.split('/').pop(),
-        rules = document.getElementById('rules'),
+        rulesElem = document.getElementById('rules'),
+        statusElem = document.getElementById('status'),
         // generate UIID
         id = Math.random().toString(36).substr(2, 5),
         // drawing state
@@ -18,7 +19,7 @@
         // lastEmit in millisecs
         lastEmit = Date.now();
     // check if canvas is supported by user's browser
-    if(canvas.getContext) {
+    if (canvas.getContext) {
         ctx = canvas.getContext('2d');
     } else {
         alert('Canvas not supported by your browser');
@@ -28,6 +29,14 @@
     socket.on('connect', function() {
         socket.emit('room', room);
     });
+    // listen for player event and share URL
+    socket.on('player', function(data) {
+        user = data;
+        console.log('what is in user: ' + user);
+        if(user === 1) {
+            statusUpdate('Share URL http://localhost:3000/draw/' + room);
+        }
+    });
     // canvas mousedown handler
     canvas.addEventListener('mousedown', function(e) {
         e.preventDefault();
@@ -36,8 +45,8 @@
         current.x = e.pageX;
         // current player's horizontal coordinate relative to whole doc
         current.y = e.pageY;
-        // hide game rules
-        rules.style.display = 'none';
+        // hide game rulesElem
+        rulesElem.style.display = 'none';
         // draw grid lines
         renderGrid(5, '#C0C0C0');
     });
@@ -98,6 +107,10 @@
     addMultiListeners(document, 'mouseup mouseleave', function() {
         drawing = false;
     });
+    // status update
+    function statusUpdate(status) {
+        statusElem.innerHTML = status;
+    }
     // helper functions to drawLine on canvas
     function drawLine(x1, y1, x2, y2) {
         ctx.beginPath();
@@ -149,6 +162,9 @@
         // loop through clients 
         for (var key in clients) {
             if (Date.now() - clients[key].updated > 10000) {
+                // delete operator deletes reference
+                // garbage collector takes care of if 
+                // obj it has no references to it
                 delete cursors[key];
                 delete clients[key];
             }
